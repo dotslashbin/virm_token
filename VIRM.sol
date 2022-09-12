@@ -1,50 +1,72 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
 
-import "./Interfaces.sol";
+pragma solidity ^0.8.4;
 
-contract VIRM is IERC20 {
-	uint public totalSupply;
-    mapping(address => uint) public balanceOf;
-    mapping(address => mapping(address => uint)) public allowance;
-    string public name = "Virm";
-    string public symbol = "VIRM";
-    uint8 public decimals = 18;
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "./Taxable.sol";
 
-    function transfer(address recipient, uint amount) external returns (bool) {
-        balanceOf[msg.sender] -= amount;
-        balanceOf[recipient] += amount;
-        emit Transfer(msg.sender, recipient, amount);
-        return true;
+contract YourToken is ReentrancyGuard, ERC20, AccessControl, Taxable {
+
+    bytes32 public constant NOT_TAXED_FROM = keccak256("NOT_TAXED_FROM");
+    bytes32 public constant NOT_TAXED_TO = keccak256("NOT_TAXED_TO");
+    bytes32 public constant ALWAYS_TAXED_FROM = keccak256("ALWAYS_TAXED_FROM");
+    bytes32 public constant ALWAYS_TAXED_TO = keccak256("ALWAYS_TAXED_TO");
+
+    constructor(
+        string memory __name,
+        string memory __symbol,
+        bool __taxed,
+        uint __thetax,
+        uint __maxtax,
+        uint __mintax,
+        address __owner
+        )
+        ERC20(__name, __symbol)
+        Taxable(__taxed, __thetax, __maxtax, __mintax, __owner)
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, __owner);
+        _grantRole(NOT_TAXED_FROM, __owner);
+        _grantRole(NOT_TAXED_TO, __owner);
+        _grantRole(NOT_TAXED_FROM, address(this));
+        _grantRole(NOT_TAXED_TO, address(this));
+        _mint(__owner, 5000 * 10 ** decimals());
     }
 
-    function approve(address spender, uint amount) external returns (bool) {
-        allowance[msg.sender][spender] = amount;
-        emit Approval(msg.sender, spender, amount);
-        return true;
+    function enableTax() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _taxon();
     }
 
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint amount
-    ) external returns (bool) {
-        allowance[sender][msg.sender] -= amount;
-        balanceOf[sender] -= amount;
-        balanceOf[recipient] += amount;
-        emit Transfer(sender, recipient, amount);
-        return true;
+    function disableTax() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _taxoff();
     }
 
-    function mint(uint amount) external {
-        balanceOf[msg.sender] += amount;
-        totalSupply += amount;
-        emit Transfer(address(0), msg.sender, amount);
+    function updateTax(uint newtax) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _updatetax(newtax);
     }
 
-    function burn(uint amount) external {
-        balanceOf[msg.sender] -= amount;
-        totalSupply -= amount;
-        emit Transfer(msg.sender, address(0), amount);
+    function updateTaxDestination(address newdestination) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _updatetaxdestination(newdestination);
+    }
+
+   function _transfer(address from, address to, uint256 amount)
+        internal
+        virtual
+        override(ERC20)
+        nonReentrant
+    {
+        if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+            super._transfer(from, to, amount);
+        } else {
+            if((hasRole(NOT_TAXED_FROM, from) || hasRole(NOT_TAXED_TO, to) || !taxed())
+            && !hasRole(ALWAYS_TAXED_FROM, from) && !hasRole(ALWAYS_TAXED_TO, to)) {
+                super._transfer(from, to, amount);
+            } else { 
+                require(balanceOf(from) >= amount, "Error: transfer amount exceeds balance");
+                super._transfer(from, taxdestination(), amount*thetax()/10000); 
+                super._transfer(from, to, amount*(10000-thetax())/10000);
+            }
+        }
     }
 }
