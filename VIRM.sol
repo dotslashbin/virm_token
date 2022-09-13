@@ -2,10 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./AdminContext.sol"; 
 
-contract VIRMT is ERC20, AdminContext{
+contract VIRMT is ERC20, Ownable{
 
     address private _taxWallet;
     uint _buyTax = 110; 
@@ -13,8 +14,7 @@ contract VIRMT is ERC20, AdminContext{
 
 	constructor(address taxationWallet) ERC20("VirmApp", "VIRM"){
         _taxWallet = taxationWallet; 
-        _mint(msg.sender,412 ether);
-        _contract_authorizer = new Authorizer(msg.sender); 
+        _mint(msg.sender,412 ether); // TODO: change to the correct supply, put on constants
     }
 
     function getBuyTax() public view returns (uint) {
@@ -25,13 +25,11 @@ contract VIRMT is ERC20, AdminContext{
         return _buyTax; 
     }
 
-    function setBuyTax(uint tax) isAuthorized public {
-        // TODO: check ownership
+    function setBuyTax(uint tax) onlyOwner public {
         _buyTax = tax; 
     }
 
-    function setSellTax(uint tax) isAuthorized public {
-        // TODO: check ownership
+    function setSellTax(uint tax) onlyOwner public {
         _sellTax = tax; 
     }
 
