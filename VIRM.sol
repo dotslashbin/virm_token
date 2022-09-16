@@ -5,9 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "./Utils.sol"; 
+
 contract VIRMT is ERC20, Ownable{
 
-    using SafeMath for uint;
+    using VirmTools for uint; 
 
     address private _taxWallet;
     uint _buyTax = 110; 
@@ -35,21 +37,7 @@ contract VIRMT is ERC20, Ownable{
     }
     
     function test(uint percentage, uint number) public pure returns(bool, uint256) {
-
-        ( bool foo, uint256 y ) = SafeMath.tryMul(percentage, number); 
-
-        if(foo == true) {
-            (bool bar, uint256 z ) = SafeMath.tryDiv(y, 100000); 
-
-            if(bar == true) {
-                return SafeMath.tryDiv(z , 1000);
-            }
-
-        }
-
-
-        return (false, 0); 
-
+        return VirmTools.getPercentageValue(percentage, number, 100); 
     }
 
 
