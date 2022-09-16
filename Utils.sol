@@ -8,6 +8,9 @@ library VirmTools {
 	using SafeMath for uint; 
 
 	function getPercentageValue(uint percentage, uint256 number, uint multiplier) internal pure returns(bool, uint256) {
+		require(percentage > 0, "You cannot have a percentage less than 0");
+		require(value > 0, "You cannot have a value less than 0");
+		require(multiplier > 0, "There must be an acceptible value for a multiplier"); 
 		( bool isFirstMul, uint256 firstMulValue ) = SafeMath.tryMul((percentage * multiplier), (number * multiplier)); 
 
 		if(isFirstMul) {
