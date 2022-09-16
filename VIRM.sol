@@ -3,10 +3,11 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-import "./AdminContext.sol"; 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract VIRMT is ERC20, Ownable{
+
+    using SafeMath for uint;
 
     address private _taxWallet;
     uint _buyTax = 110; 
@@ -32,6 +33,25 @@ contract VIRMT is ERC20, Ownable{
     function setSellTax(uint tax) onlyOwner public {
         _sellTax = tax; 
     }
+    
+    function test(uint percentage, uint number) public pure returns(bool, uint256) {
+
+        ( bool foo, uint256 y ) = SafeMath.tryMul(percentage, number); 
+
+        if(foo == true) {
+            (bool bar, uint256 z ) = SafeMath.tryDiv(y, 100000); 
+
+            if(bar == true) {
+                return SafeMath.tryDiv(z , 1000);
+            }
+
+        }
+
+
+        return (false, 0); 
+
+    }
+
 
     function transfer(address to, uint256 amount) override public returns (bool) {
 
