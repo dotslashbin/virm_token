@@ -17,9 +17,10 @@ contract VIRMT is ERC20, Ownable{
     uint private _percentage_multiplier; 
     uint constant _decimal = 18; 
 
-	constructor(address taxationWallet) ERC20("VirmApp", "VIRM"){
+	constructor(address taxationWallet, uint multiplierValue) ERC20("VirmApp", "VIRT"){
         _taxWallet = taxationWallet; 
-        _mint(msg.sender,412 ether);
+        _percentage_multiplier = multiplierValue; 
+        _mint(msg.sender,123 ether);
     }
 
     function getBuyTax() public view returns (uint) {
@@ -27,7 +28,7 @@ contract VIRMT is ERC20, Ownable{
     }
 
     function getSellTax() public view returns (uint) {
-        return _buyTax; 
+        return _sellTax; 
     }
 
     function setBuyTax(uint value) onlyOwner public {
@@ -51,8 +52,14 @@ contract VIRMT is ERC20, Ownable{
     
     function transfer(address to, uint256 amount) override public returns (bool) {
 
-        super.transfer(to, amount);
-        super.transfer(_taxWallet, 100*10**18);
+        require(to != address(0), "This requires an address to transfer"); 
+
+        // Process tax
+        ( bool hasCalculation, uint256 valueToSubtract ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+
+        super.transfer(to, (amount - valueToSubtract));
+        
+        super.transfer(_taxWallet, valueToSubtract*10**18); // TODO: remove this, only a reference
 
         return true; 
     }
