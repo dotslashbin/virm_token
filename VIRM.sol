@@ -19,7 +19,7 @@ contract VIRMT is ERC20, Ownable{
 
 	constructor(address taxationWallet) ERC20("VirmApp", "VIRM"){
         _taxWallet = taxationWallet; 
-        _mint(msg.sender,412 ether); // TODO: change to the correct supply, put on constants
+        _mint(msg.sender,412 ether);
     }
 
     function getBuyTax() public view returns (uint) {
@@ -32,7 +32,7 @@ contract VIRMT is ERC20, Ownable{
 
     function setBuyTax(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
-        _buyTax = tax; 
+        _buyTax = value; 
     }
 
     function setPercentageMultiplier(uint value) onlyOwner public {
@@ -42,11 +42,10 @@ contract VIRMT is ERC20, Ownable{
 
     function setSellTax(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
-        _sellTax = tax; 
+        _sellTax = value; 
     }
 
     function setTaxationWallet(address wallet) onlyOwner public {
-        require(wallet != 0, "There must be a valid wallet address for taxation wallet"); 
         _taxWallet = wallet; 
     }
     
