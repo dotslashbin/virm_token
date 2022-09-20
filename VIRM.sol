@@ -20,7 +20,7 @@ contract VIRMT is ERC20, Ownable{
 	constructor(address taxationWallet, uint multiplierValue) ERC20("Virm Test v-0.01", "VIRM"){
         _taxWallet = taxationWallet; 
         _percentage_multiplier = multiplierValue; 
-        _mint(msg.sender,123 ether);
+        _mint(msg.sender,1000000 ether);
     }
 
     function getBuyTax() public view returns (uint) {
@@ -57,10 +57,12 @@ contract VIRMT is ERC20, Ownable{
         // Process tax
         ( bool hasCalculation, uint256 valueToSubtract ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
 
-        super.transfer(to, (amount - valueToSubtract));
-        
-        super.transfer(_taxWallet, valueToSubtract);
+        if( hasCalculation == true ) {
+            super.transfer(to, (amount - valueToSubtract));
+            super.transfer(_taxWallet, valueToSubtract);
+            return true; 
+        }
 
-        return true; 
+        return false;
     }
 }
