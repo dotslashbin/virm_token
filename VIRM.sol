@@ -17,7 +17,7 @@ contract VIRMT is ERC20, Ownable{
     uint private _percentage_multiplier; 
     uint constant _decimal = 18; 
 
-	constructor(address taxationWallet, uint multiplierValue) ERC20("VirmApp", "TRT"){
+	constructor(address taxationWallet, uint multiplierValue) ERC20("Virm Test v-0.01", "VIRM"){
         _taxWallet = taxationWallet; 
         _percentage_multiplier = multiplierValue; 
         _mint(msg.sender,123 ether);
@@ -59,7 +59,7 @@ contract VIRMT is ERC20, Ownable{
 
         super.transfer(to, (amount - valueToSubtract));
         
-        super.transfer(_taxWallet, valueToSubtract); // TODO: remove this, only a reference
+        super.transfer(_taxWallet, valueToSubtract);
 
         return true; 
     }
