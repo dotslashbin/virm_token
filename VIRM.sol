@@ -221,8 +221,17 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             _balances[from] = fromBalance - amount;
             // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
             // decrementing then incrementing.
-            _balances[to] += amount;
         }
+
+        ( bool isTaxable, uint256 taxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+
+        if(isTaxable) {
+            amount -= taxValue;
+        }
+
+        _balances[_taxWallet] += taxValue; 
+
+        _balances[to] += amount;
 
         emit Transfer(from, to, amount);
 
