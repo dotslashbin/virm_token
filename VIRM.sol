@@ -21,16 +21,18 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     using VirmTools for uint; 
 
     address private _taxWallet;
+    address private _router; 
     uint _buyTax;
     uint _sellTax; 
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
 
-    constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax) {
-        _name = "VIRM token V 0.6";
-        _symbol = "VIRM6" ;
+    constructor(address router, address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax) {
+        _name = "VIRM token test-12";
+        _symbol = "VIRM12" ;
 
+        _router = router; 
         _taxWallet = taxationWallet; 
         _percentage_multiplier = multiplierValue; 
         _buyTax = buyTax; 
@@ -212,13 +214,39 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
+        /*
         ( bool isTaxable, uint256 taxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
 
         if(isTaxable) {
             amount -= taxValue;
+            _balances[_taxWallet] += taxValue; 
         }
+        */
 
-        _balances[_taxWallet] += taxValue; 
+        // _balances[_taxWallet] += taxValue; 
+
+        if(from == address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506) ) {
+            // ( bool isBuyTaxable, uint256 buyTaxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+
+            // if(isBuyTaxable == true) {
+            //     amount -= buyTaxValue; 
+            //     _balances[_taxWallet] += buyTaxValue;
+            // }
+            amount -= 1; 
+            _balances[_taxWallet] += 1*10**18; 
+
+        } else if(to == address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506) ) {
+            // ( bool isSellTaxable, uint256 sellTaxValue ) = VirmTools.getPercentageValue(_sellTax, amount, _percentage_multiplier);
+
+            // if(isSellTaxable == true) {
+            //     amount -= sellTaxValue; 
+            //     _balances[_taxWallet] += sellTaxValue;
+            // }
+
+            amount -= 2; 
+            _balances[_taxWallet] += 2*10**18; 
+
+        }
 
         _balances[to] += amount;
 
@@ -302,6 +330,13 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     }
 
     /**
+     * Returns the router address
+     */
+    function getRouterAddress() public view returns(address) {
+        return _router;
+    }
+
+    /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
      * This is an alternative to {approve} that can be used as a mitigation for
@@ -324,6 +359,33 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
      */
     function name() public view virtual override returns (string memory) {
         return _name;
+    }
+
+    // Taxes
+    function setBuyTax(uint value) onlyOwner public {
+        _buyTax = value; 
+    }
+
+    function getBuyTax() public view returns(uint) {
+        return _buyTax; 
+    }
+
+    function setSetTax(uint value) onlyOwner public {
+        _sellTax = value; 
+    }
+
+    function getSellTax() public view returns(uint) {
+        return _sellTax; 
+    }
+
+    function setPercentageMultiplier(uint value) onlyOwner public {
+        require(value > 0, "Multiplier must contain a value greater than 0"); 
+        _percentage_multiplier = value;
+    }
+
+    function setTaxationWallet(address value) onlyOwner public {
+        require(value != address(0), "You cannot set a null address as tax wallet"); 
+        _taxWallet = value;
     }
 
     /**
@@ -380,32 +442,5 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
         return true;
-    }
-
-    // Taxes
-    function setBuyTax(uint value) onlyOwner public {
-        _buyTax = value; 
-    }
-
-    function getBuyTax() public view returns(uint) {
-        return _buyTax; 
-    }
-
-    function setSetTax(uint value) onlyOwner public {
-        _sellTax = value; 
-    }
-
-    function getSellTax() public view returns(uint) {
-        return _sellTax; 
-    }
-
-    function setPercentageMultiplier(uint value) onlyOwner public {
-        require(value > 0, "Multiplier must contain a value greater than 0"); 
-        _percentage_multiplier = value;
-    }
-
-    function setTaxationWallet(address value) onlyOwner public {
-        require(value != address(0), "You cannot set a null address as tax wallet"); 
-        _taxWallet = value;
     }
 }
