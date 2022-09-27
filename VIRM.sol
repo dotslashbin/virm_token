@@ -21,18 +21,22 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     using VirmTools for uint; 
 
     address private _taxWallet;
-    address private _router; 
+
+    // Swap Addressses
+    address private _buyRouter; 
+    address private _sellRouter;
+
     uint _buyTax;
     uint _sellTax; 
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
+    event SeeIfSwap(address from, address to, address router); 
 
-    constructor(address router, address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax) {
-        _name = "VIRM token test-12";
-        _symbol = "VIRM12" ;
+    constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax) {
+        _name = "VIRM token test-15";
+        _symbol = "VIRM15";
 
-        _router = router; 
         _taxWallet = taxationWallet; 
         _percentage_multiplier = multiplierValue; 
         _buyTax = buyTax; 
@@ -225,27 +229,21 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
         // _balances[_taxWallet] += taxValue; 
 
-        if(from == address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506) ) {
-            // ( bool isBuyTaxable, uint256 buyTaxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+        if(from == _buyRouter ) {
+            ( bool isBuyTaxable, uint256 buyTaxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
 
-            // if(isBuyTaxable == true) {
-            //     amount -= buyTaxValue; 
-            //     _balances[_taxWallet] += buyTaxValue;
-            // }
-            amount -= 1; 
-            _balances[_taxWallet] += 1*10**18; 
+            if(isBuyTaxable == true) {
+                amount -= buyTaxValue; 
+                _balances[_taxWallet] += buyTaxValue;
+            }
 
-        } else if(to == address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506) ) {
-            // ( bool isSellTaxable, uint256 sellTaxValue ) = VirmTools.getPercentageValue(_sellTax, amount, _percentage_multiplier);
+        } else if(to == _sellRouter ) {
+            ( bool isSellTaxable, uint256 sellTaxValue ) = VirmTools.getPercentageValue(_sellTax, amount, _percentage_multiplier);
 
-            // if(isSellTaxable == true) {
-            //     amount -= sellTaxValue; 
-            //     _balances[_taxWallet] += sellTaxValue;
-            // }
-
-            amount -= 2; 
-            _balances[_taxWallet] += 2*10**18; 
-
+            if(isSellTaxable == true) {
+                amount -= sellTaxValue; 
+                _balances[_taxWallet] += sellTaxValue;
+            }
         }
 
         _balances[to] += amount;
@@ -330,13 +328,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     }
 
     /**
-     * Returns the router address
-     */
-    function getRouterAddress() public view returns(address) {
-        return _router;
-    }
-
-    /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
      * This is an alternative to {approve} that can be used as a mitigation for
@@ -361,7 +352,11 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _name;
     }
 
-    // Taxes
+    function setBuyRouter(address value) public {
+        require(value != address(0), 'This requires a valid address');
+        _buyRouter = value; 
+    }
+
     function setBuyTax(uint value) onlyOwner public {
         _buyTax = value; 
     }
@@ -381,6 +376,11 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     function setPercentageMultiplier(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
         _percentage_multiplier = value;
+    }
+
+    function setSellRouter(address value) onlyOwner public {
+        require(value != address(0), "This requires a valid address");
+        _sellRouter = value;
     }
 
     function setTaxationWallet(address value) onlyOwner public {
