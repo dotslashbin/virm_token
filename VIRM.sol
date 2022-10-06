@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+// Interfaces
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
+import "./library/IUniswapV2Router02.sol"; 
+import "./library/IFactory.sol"; 
 import "./Utils.sol";
 
 contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
@@ -18,24 +22,30 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     string private _name;
     string private _symbol;
 
+    IUniswapV2Router02 private _router;
+    address private _pair;
+
     using VirmTools for uint; 
 
-    address private _taxWallet;
+    address public taxWallet;
     uint _buyTax;
     uint _sellTax; 
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
+    constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax, address routerAddress) {
+        _name = "VIRM token";
+        _symbol = "VIRM54" ;
 
-    constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax) {
-        _name = "VIRM token V 0.6";
-        _symbol = "VIRM6" ;
+        taxWallet = taxationWallet; 
+        _router = IUniswapV2Router02(routerAddress);
+        _pair = IFactory(_router.factory())
+            .createPair(address(this), _router.WETH());
 
-        _taxWallet = taxationWallet; 
         _percentage_multiplier = multiplierValue; 
         _buyTax = buyTax; 
         _sellTax = sellTax;
-        _mint(msg.sender,1000000 ether);
+        _mint(msg.sender,100000000 ether);
     }
 
     // ------------------ PRIVATE FUCTIONS: start ------------------------------------------------------ //
@@ -212,18 +222,19 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        ( bool isTaxable, uint256 taxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
-
-        if(isTaxable) {
-            amount -= taxValue;
+        if(from == _pair) {
+            uint256 buyTax = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+            amount -= buyTax;
+            _balances[taxWallet] += buyTax; 
+         
+        } else if(to == _pair) {
+            uint256 sellTax = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
+            amount -= sellTax;
+            _balances[taxWallet] += sellTax; 
         }
 
-        _balances[_taxWallet] += taxValue; 
-
         _balances[to] += amount;
-
         emit Transfer(from, to, amount);
-
         _afterTokenTransfer(from, to, amount);
     }
 
@@ -326,6 +337,14 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _name;
     }
 
+    function pair() public view returns(address) {
+        return _pair;
+    }
+
+    function router() public view returns(IUniswapV2Router02) {
+        return _router;
+    }
+
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
@@ -387,7 +406,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _buyTax = value; 
     }
 
-    function getBuyTax() public view returns(uint) {
+    function buyTax() public view returns(uint) {
         return _buyTax; 
     }
 
@@ -395,7 +414,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _sellTax = value; 
     }
 
-    function getSellTax() public view returns(uint) {
+    function sellTax() public view returns(uint) {
         return _sellTax; 
     }
 
@@ -404,8 +423,14 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _percentage_multiplier = value;
     }
 
+    function setRouter(address value) onlyOwner public {
+        require(value != address(0), "You have to set a valid address"); 
+        require(value != address(this), "The address cannot be this contract's address"); 
+        _router = IUniswapV2Router02(value);
+    }
+
     function setTaxationWallet(address value) onlyOwner public {
         require(value != address(0), "You cannot set a null address as tax wallet"); 
-        _taxWallet = value;
+        taxWallet = value;
     }
 }
