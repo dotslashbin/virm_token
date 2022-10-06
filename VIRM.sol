@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+// Interfaces
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
+import "./library/IUniswapV2Router02.sol"; 
+import "./library/IFactory.sol"; 
 import "./Utils.sol";
 
 contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
@@ -18,24 +22,35 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     string private _name;
     string private _symbol;
 
+    IUniswapV2Router02 public router;
+    address public pair;
+
     using VirmTools for uint; 
 
-    address private _taxWallet;
+    address public _taxWallet;
     uint _buyTax;
     uint _sellTax; 
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
+    // TAX
+    address public _routerAddress;
 
-    constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax) {
-        _name = "VIRM token V 0.6";
-        _symbol = "VIRM6" ;
+    constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax, address routerAddress) {
+        _name = "VIRM token";
+        _symbol = "VIRM51" ;
 
         _taxWallet = taxationWallet; 
+        IUniswapV2Router02 _router = IUniswapV2Router02(routerAddress);
+        address _pair = IFactory(_router.factory())
+            .createPair(address(this), _router.WETH());
+
+        router = _router; 
+        pair = _pair;
         _percentage_multiplier = multiplierValue; 
         _buyTax = buyTax; 
         _sellTax = sellTax;
-        _mint(msg.sender,1000000 ether);
+        _mint(msg.sender,100000000 ether);
     }
 
     // ------------------ PRIVATE FUCTIONS: start ------------------------------------------------------ //
@@ -212,18 +227,19 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        ( bool isTaxable, uint256 taxValue ) = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
-
-        if(isTaxable) {
-            amount -= taxValue;
+        if(from == pair ) {
+            uint256 buyTax = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+            amount -= buyTax;
+            _balances[_taxWallet] += buyTax; 
+         
+        } else if(to == pair) {
+            uint256 sellTax = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
+            amount -= sellTax;
+            _balances[_taxWallet] += sellTax; 
         }
 
-        _balances[_taxWallet] += taxValue; 
-
         _balances[to] += amount;
-
         emit Transfer(from, to, amount);
-
         _afterTokenTransfer(from, to, amount);
     }
 
@@ -402,6 +418,10 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     function setPercentageMultiplier(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
         _percentage_multiplier = value;
+    }
+
+    function setRouterAddress(address input) onlyOwner public {
+        _routerAddress = input;
     }
 
     function setTaxationWallet(address value) onlyOwner public {
