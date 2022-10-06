@@ -22,8 +22,8 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     string private _name;
     string private _symbol;
 
-    IUniswapV2Router02 public router;
-    address public pair;
+    IUniswapV2Router02 private _router;
+    address private _pair;
 
     using VirmTools for uint; 
 
@@ -35,12 +35,12 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax, address routerAddress) {
         _name = "VIRM token";
-        _symbol = "VIRM53" ;
+        _symbol = "VIRM54" ;
 
         taxWallet = taxationWallet; 
-        router = IUniswapV2Router02(routerAddress);
-        pair = IFactory(router.factory())
-            .createPair(address(this), router.WETH());
+        _router = IUniswapV2Router02(routerAddress);
+        _pair = IFactory(_router.factory())
+            .createPair(address(this), _router.WETH());
 
         _percentage_multiplier = multiplierValue; 
         _buyTax = buyTax; 
@@ -222,12 +222,12 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        if(from == pair) {
+        if(from == _pair) {
             uint256 buyTax = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
             amount -= buyTax;
             _balances[taxWallet] += buyTax; 
          
-        } else if(to == pair) {
+        } else if(to == _pair) {
             uint256 sellTax = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
             amount -= sellTax;
             _balances[taxWallet] += sellTax; 
@@ -337,6 +337,14 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _name;
     }
 
+    function pair() public view returns(address) {
+        return _pair;
+    }
+
+    function router() public view returns(IUniswapV2Router02) {
+        return _router;
+    }
+
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
@@ -413,6 +421,12 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     function setPercentageMultiplier(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
         _percentage_multiplier = value;
+    }
+
+    function setRouter(address value) onlyOwner public {
+        require(value != address(0), "You have to set a valid address"); 
+        require(value != address(this), "The address cannot be this contract's address"); 
+        _router = IUniswapV2Router02(value);
     }
 
     function setTaxationWallet(address value) onlyOwner public {
