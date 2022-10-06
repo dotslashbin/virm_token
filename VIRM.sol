@@ -27,19 +27,17 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     using VirmTools for uint; 
 
-    address public _taxWallet;
+    address public taxWallet;
     uint _buyTax;
     uint _sellTax; 
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
-    address public _routerAddress;
-
     constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax, address routerAddress) {
         _name = "VIRM token";
-        _symbol = "VIRM52" ;
+        _symbol = "VIRM53" ;
 
-        _taxWallet = taxationWallet; 
+        taxWallet = taxationWallet; 
         router = IUniswapV2Router02(routerAddress);
         pair = IFactory(router.factory())
             .createPair(address(this), router.WETH());
@@ -224,15 +222,15 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        if(from == pair ) {
+        if(from == pair) {
             uint256 buyTax = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
             amount -= buyTax;
-            _balances[_taxWallet] += buyTax; 
+            _balances[taxWallet] += buyTax; 
          
         } else if(to == pair) {
             uint256 sellTax = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
             amount -= sellTax;
-            _balances[_taxWallet] += sellTax; 
+            _balances[taxWallet] += sellTax; 
         }
 
         _balances[to] += amount;
@@ -419,6 +417,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     function setTaxationWallet(address value) onlyOwner public {
         require(value != address(0), "You cannot set a null address as tax wallet"); 
-        _taxWallet = value;
+        taxWallet = value;
     }
 }
