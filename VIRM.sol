@@ -33,20 +33,17 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
-    // TAX
     address public _routerAddress;
 
     constructor(address taxationWallet, uint multiplierValue, uint buyTax, uint sellTax, address routerAddress) {
         _name = "VIRM token";
-        _symbol = "VIRM51" ;
+        _symbol = "VIRM52" ;
 
         _taxWallet = taxationWallet; 
-        IUniswapV2Router02 _router = IUniswapV2Router02(routerAddress);
-        address _pair = IFactory(_router.factory())
-            .createPair(address(this), _router.WETH());
+        router = IUniswapV2Router02(routerAddress);
+        pair = IFactory(router.factory())
+            .createPair(address(this), router.WETH());
 
-        router = _router; 
-        pair = _pair;
         _percentage_multiplier = multiplierValue; 
         _buyTax = buyTax; 
         _sellTax = sellTax;
@@ -418,10 +415,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     function setPercentageMultiplier(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
         _percentage_multiplier = value;
-    }
-
-    function setRouterAddress(address input) onlyOwner public {
-        _routerAddress = input;
     }
 
     function setTaxationWallet(address value) onlyOwner public {
