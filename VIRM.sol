@@ -406,7 +406,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _buyTax = value; 
     }
 
-    function getBuyTax() public view returns(uint) {
+    function buyTax() public view returns(uint) {
         return _buyTax; 
     }
 
@@ -414,7 +414,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _sellTax = value; 
     }
 
-    function getSellTax() public view returns(uint) {
+    function sellTax() public view returns(uint) {
         return _sellTax; 
     }
 
