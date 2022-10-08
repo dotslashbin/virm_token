@@ -33,7 +33,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     // Taxation Wallets
     address private _devWallet;
-    address private _burnWallet;
     address private _marketingWallet;
     address private _rewardsWallet;
 
@@ -41,18 +40,24 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     uint _sellTax; 
     
 
-    constructor(address taxationWallet, uint multiplierValue, uint buyTaxInput, uint sellTaxInput, address routerAddress) {
+    constructor(uint multiplierValue, address routerAddress, address dev, address marketing, address rewards) {
+        
+        // Initializing token identity
         _name = "VIRM token";
         _symbol = "VIRM54" ;
 
-        _taxWallet = taxationWallet; 
+        // Initializing router
         _router = IUniswapV2Router02(routerAddress);
-        _pair = IFactory(_router.factory())
-            .createPair(address(this), _router.WETH());
+        _pair = IFactory(_router.factory()).createPair(address(this), _router.WETH());
 
+        // Initializing contract configurations
         _percentage_multiplier = multiplierValue; 
-        _buyTax = buyTaxInput; 
-        _sellTax = sellTaxInput;
+        
+        // Initializing taxation wallets
+        _devWallet = dev;
+        _marketingWallet = marketing;
+        _rewardsWallet = rewards;
+
         _mint(msg.sender,100000000 ether);
     }
 
@@ -230,16 +235,16 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        if(from == _pair) {
-            uint256 buyTaxValue = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
-            amount -= buyTaxValue;
-            _balances[_taxWallet] += buyTaxValue; 
+        // if(from == _pair) { // BUY
+        //     uint256 buyTaxValue = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+        //     amount -= buyTaxValue;
+        //     _balances[_taxWallet] += buyTaxValue; 
          
-        } else if(to == _pair) {
-            uint256 sellTaxValue = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
-            amount -= sellTaxValue;
-            _balances[_taxWallet] += sellTaxValue; 
-        }
+        // } else if(to == _pair) { // SELL
+        //     uint256 sellTaxValue = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
+        //     amount -= sellTaxValue;
+        //     _balances[_taxWallet] += sellTaxValue; 
+        // }
 
         _balances[to] += amount;
         emit Transfer(from, to, amount);
@@ -276,10 +281,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
      */
     function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
-    }
-
-    function buyTax() public view returns(uint) {
-        return _buyTax; 
     }
 
     /**
@@ -361,14 +362,9 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _buyTax = value; 
     }
 
-    function sellTax() public view returns(uint) {
-        return _sellTax; 
-    }
-
     function setDevWallet(address value) onlyOwner public {
         require(value != address(0), "You cannot set a null address as tax wallet"); 
         require(value != address(this), "You cannot use this address as tax wallet");
-        require(value != _burnWallet, "You cannot use this address as tax wallet");
         require(value != _marketingWallet, "You cannot use this address as tax wallet");
         require(value != _rewardsWallet, "You cannot use this address as tax wallet");
 
@@ -379,7 +375,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         require(value != address(0), "This requires a valid address");
         require(value != address(this), "You cannot use this address as tax wallet");
         require(value != _devWallet, "You cannot use this address as tax wallet");
-        require(value != _burnWallet, "You cannot use this address as tax wallet");
         require(value != _rewardsWallet, "You cannot use this address as tax wallet");
 
         _marketingWallet = value;
@@ -394,7 +389,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         require(value != address(0), "This requires a valid address");
         require(value != address(this), "You cannot use this address as tax wallet");
         require(value != _devWallet, "You cannot use this address as tax wallet");
-        require(value != _burnWallet, "You cannot use this address as tax wallet");
         require(value != _marketingWallet, "You cannot use this address as tax wallet");
 
         _rewardsWallet = value;
@@ -464,9 +458,5 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
         return true;
-    }
-
-    function taxWallet() public view returns(address) {
-        return _taxWallet;
     }
 }
