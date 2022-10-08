@@ -217,6 +217,17 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         }
     }
 
+    function _takeTax(uint taxValue, address wallet, uint256 amount) private returns(uint256 taxAmount) {
+        
+        if(amount > 0 && taxValue > 0) {
+            taxAmount = VirmTools.getPercentageValue(taxValue, amount, _percentage_multiplier);
+            _balances[wallet] += taxAmount;
+            return taxAmount;
+        }
+
+        return 0;
+    }
+
     /**
      * @dev Moves `amount` of tokens from `from` to `to`.
      *
@@ -249,16 +260,18 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        // if(from == _pair) { // BUY
-        //     uint256 buyTaxValue = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
-        //     amount -= buyTaxValue;
-        //     _balances[_taxWallet] += buyTaxValue; 
+        if(from == _pair) { // BUY
+            // uint256 buyTaxValue = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
+            // amount -= buyTaxValue;
+            // _balances[_taxWallet] += buyTaxValue; 
+
+            amount -= _takeTax(_marketingTax, _marketingWallet, amount); // Marketing tax
          
-        // } else if(to == _pair) { // SELL
-        //     uint256 sellTaxValue = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
-        //     amount -= sellTaxValue;
-        //     _balances[_taxWallet] += sellTaxValue; 
-        // }
+        } else if(to == _pair) { // SELL
+            // uint256 sellTaxValue = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
+            // amount -= sellTaxValue;
+            // _balances[_taxWallet] += sellTaxValue; 
+        }
 
         _balances[to] += amount;
         emit Transfer(from, to, amount);
