@@ -28,9 +28,10 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     using VirmTools for uint; 
 
     // Wallets
-    address private _taxWallet;
-    address private _marketingWallet;
     address private _devWallet;
+    address private _burnWallet;
+    address private _marketingWallet;
+    address private _rewardsWallet;
 
     uint _buyTax;
     uint _sellTax; 
@@ -364,16 +365,19 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     function setDevWallet(address value) onlyOwner public {
         require(value != address(0), "You cannot set a null address as tax wallet"); 
         require(value != address(this), "You cannot use this address as tax wallet");
-        require(value != _taxWallet, "You cannot use this address as tax wallet");
+        require(value != _burnWallet, "You cannot use this address as tax wallet");
         require(value != _marketingWallet, "You cannot use this address as tax wallet");
+        require(value != _rewardsWallet, "You cannot use this address as tax wallet");
+
         _devWallet = value;
     }
 
-    function setMarketingWalletr(address value) onlyOwner public {
+    function setMarketingWallet(address value) onlyOwner public {
         require(value != address(0), "This requires a valid address");
         require(value != address(this), "You cannot use this address as tax wallet");
         require(value != _devWallet, "You cannot use this address as tax wallet");
-        require(value != _taxWallet, "You cannot use this address as tax wallet");
+        require(value != _burnWallet, "You cannot use this address as tax wallet");
+        require(value != _rewardsWallet, "You cannot use this address as tax wallet");
 
         _marketingWallet = value;
     }
@@ -381,6 +385,16 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     function setPercentageMultiplier(uint value) onlyOwner public {
         require(value > 0, "Multiplier must contain a value greater than 0"); 
         _percentage_multiplier = value;
+    }
+
+    function setRewardsWallet(address value) onlyOwner public {
+        require(value != address(0), "This requires a valid address");
+        require(value != address(this), "You cannot use this address as tax wallet");
+        require(value != _devWallet, "You cannot use this address as tax wallet");
+        require(value != _burnWallet, "You cannot use this address as tax wallet");
+        require(value != _marketingWallet, "You cannot use this address as tax wallet");
+
+        _rewardsWallet = value;
     }
 
     function setRouter(address value) onlyOwner public {
@@ -391,14 +405,6 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     function setSellTax(uint value) onlyOwner public {
         _sellTax = value; 
-    }
-
-    function setTaxationWallet(address value) onlyOwner public {
-        require(value != address(0), "You cannot set a null address as tax wallet"); 
-        require(value != address(this), "You cannot use this address as tax wallet");
-        require(value != _devWallet, "You cannot use this address as tax wallet");
-        require(value != _marketingWallet, "You cannot use this address as tax wallet");
-        _taxWallet = value;
     }
 
     /**
