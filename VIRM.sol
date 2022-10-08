@@ -51,7 +51,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         
         // Initializing token identity
         _name = "VIRM token";
-        _symbol = "VIRM54" ;
+        _symbol = "VIRM57" ;
 
         // Initializing router
         _router = IUniswapV2Router02(routerAddress);
@@ -261,16 +261,11 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         }
 
         if(from == _pair) { // BUY
-            // uint256 buyTaxValue = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
-            // amount -= buyTaxValue;
-            // _balances[_taxWallet] += buyTaxValue; 
-
             amount -= _takeTax(_marketingTax, _marketingWallet, amount); // Marketing tax
-         
+            amount -= _takeTax(_autoLPTax, address(this), amount); // Liquidity tax goes back to the contract
         } else if(to == _pair) { // SELL
-            // uint256 sellTaxValue = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
-            // amount -= sellTaxValue;
-            // _balances[_taxWallet] += sellTaxValue; 
+            amount -= _takeTax(_rewardsTax, _rewardsWallet, amount); // Rewards tax
+            amount -= _takeTax(_devTax, _devWallet, amount); // Dev tax
         }
 
         _balances[to] += amount;
