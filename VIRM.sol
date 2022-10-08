@@ -325,6 +325,10 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _decimal;
     }
 
+    function devWallet() public view returns(address) {
+        return _devWallet;
+    }
+
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
@@ -350,8 +354,16 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _name;
     }
 
+    function marketingWallet() public view returns(address) {
+        return _marketingWallet;
+    }
+
     function pair() public view returns(address) {
         return _pair;
+    }
+
+    function rewardsWallet() public view returns(address) {
+        return _rewardsWallet;
     }
 
     function router() public view returns(IUniswapV2Router02) {
