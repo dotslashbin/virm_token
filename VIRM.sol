@@ -13,21 +13,25 @@ import "./library/IFactory.sol";
 import "./Utils.sol";
 
 contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
-    mapping(address => uint256) private _balances;
 
+    mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
+    // Contract Properties
     uint256 private _totalSupply;
-
     string private _name;
     string private _symbol;
+    uint private _percentage_multiplier; 
+    uint8 constant _decimal = 18; 
 
+    // Router
     IUniswapV2Router02 private _router;
     address private _pair;
 
+    // Tools
     using VirmTools for uint; 
 
-    // Wallets
+    // Taxation Wallets
     address private _devWallet;
     address private _burnWallet;
     address private _marketingWallet;
@@ -35,8 +39,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     uint _buyTax;
     uint _sellTax; 
-    uint private _percentage_multiplier; 
-    uint8 constant _decimal = 18; 
+    
 
     constructor(address taxationWallet, uint multiplierValue, uint buyTaxInput, uint sellTaxInput, address routerAddress) {
         _name = "VIRM token";
