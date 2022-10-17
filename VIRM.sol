@@ -13,42 +13,65 @@ import "./library/IFactory.sol";
 import "./Utils.sol";
 
 contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
-    mapping(address => uint256) private _balances;
 
+    mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
+    // Contract Properties
     uint256 private _totalSupply;
-
     string private _name;
     string private _symbol;
-
-    IUniswapV2Router02 private _router;
-    address private _pair;
-
-    using VirmTools for uint; 
-
-    // Wallets
-    address private _taxWallet;
-    address private _marketingWallet;
-    address private _devWallet;
-
-    uint _buyTax;
-    uint _sellTax; 
     uint private _percentage_multiplier; 
     uint8 constant _decimal = 18; 
 
-    constructor(address taxationWallet, uint multiplierValue, uint buyTaxInput, uint sellTaxInput, address routerAddress) {
+    // Router
+    IUniswapV2Router02 private _router;
+    address private _pair;
+
+    // Tools
+    using VirmTools for uint; 
+
+    // Taxation Wallets
+    address private _devWallet;
+    address private _marketingWallet;
+    address private _rewardsWallet;
+
+    // Tax values
+    uint _autoLPTax;
+    uint _marketingTax;
+    uint _burnTax;
+    uint _rewardsTax;
+    uint _devTax;
+
+    uint _buyTax;
+    uint _sellTax; 
+    
+
+    constructor(uint multiplierValue, uint autoLPTaxValue, uint marketingTaxValue, uint burnTaxValue, uint rewardsTaxValue, uint devTaxValue, address routerAddress, address dev, address marketing, address rewards) {
+        
+        // Initializing token identity
         _name = "VIRM token";
-        _symbol = "VIRM54" ;
+        _symbol = "VIRM57" ;
 
-        _taxWallet = taxationWallet; 
+        // Initializing router
         _router = IUniswapV2Router02(routerAddress);
-        _pair = IFactory(_router.factory())
-            .createPair(address(this), _router.WETH());
+        _pair = IFactory(_router.factory()).createPair(address(this), _router.WETH());
 
+        // Initializing contract configurations
         _percentage_multiplier = multiplierValue; 
-        _buyTax = buyTaxInput; 
-        _sellTax = sellTaxInput;
+        
+        // Initializing taxation wallets
+        _devWallet = dev;
+        _marketingWallet = marketing;
+        _rewardsWallet = rewards;
+
+        // Initializing tax values
+        _autoLPTax = autoLPTaxValue;
+        _marketingTax = marketingTaxValue;
+        _burnTax = burnTaxValue;
+        _rewardsTax = rewardsTaxValue;
+        _devTax = devTaxValue;
+
         _mint(msg.sender,100000000 ether);
     }
 
@@ -194,6 +217,19 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         }
     }
 
+    function _takeTax(uint taxValue, address wallet, uint256 amount) private returns(uint256 taxAmount) {
+
+        // TODO: add exceptions to addressess
+        
+        if(amount > 0 && taxValue > 0) {
+            taxAmount = VirmTools.getPercentageValue(taxValue, amount, _percentage_multiplier);
+            _balances[wallet] += taxAmount;
+            return taxAmount;
+        }
+
+        return 0;
+    }
+
     /**
      * @dev Moves `amount` of tokens from `from` to `to`.
      *
@@ -226,15 +262,17 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        if(from == _pair) {
-            uint256 buyTaxValue = VirmTools.getPercentageValue(_buyTax, amount, _percentage_multiplier);
-            amount -= buyTaxValue;
-            _balances[_taxWallet] += buyTaxValue; 
-         
-        } else if(to == _pair) {
-            uint256 sellTaxValue = VirmTools.getPercentageValue(_sellTax , amount, _percentage_multiplier);
-            amount -= sellTaxValue;
-            _balances[_taxWallet] += sellTaxValue; 
+        if(from == _pair) { // BUY
+            amount -= _takeTax(_marketingTax, _marketingWallet, amount); // Marketing tax
+            amount -= _takeTax(_autoLPTax, address(this), amount); // Liquidity tax goes back to the contract
+        } else if(to == _pair) { // SELL
+            amount -= _takeTax(_rewardsTax, _rewardsWallet, amount); // Rewards tax
+            amount -= _takeTax(_devTax, _devWallet, amount); // Dev tax
+
+            burnAmount = VirmTools.getPercentageValue(_burnTax, amount, _percentage_multiplier)
+
+            _burn(address(0), burnAmount); 
+            amount -= burnAmount; 
         }
 
         _balances[to] += amount;
@@ -274,8 +312,8 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _balances[account];
     }
 
-    function buyTax() public view returns(uint) {
-        return _buyTax; 
+    function burnTax() public view returns(uint) {
+        return _burnTax;
     }
 
     /**
@@ -320,6 +358,14 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _decimal;
     }
 
+    function devWallet() public view returns(address) {
+        return _devWallet;
+    }
+
+    function devTax() public view returns(uint) {
+        return _devTax;
+    }
+
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
@@ -345,37 +391,58 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         return _name;
     }
 
+    function marketingWallet() public view returns(address) {
+        return _marketingWallet;
+    }
+
+    function marketingTax() public view returns(uint) {
+        return _marketingTax;
+    }
+
     function pair() public view returns(address) {
         return _pair;
+    }
+
+    function rewardsWallet() public view returns(address) {
+        return _rewardsWallet;
+    }
+
+    function rewardsTax() public view returns(uint) {
+        return _rewardsTax;
     }
 
     function router() public view returns(IUniswapV2Router02) {
         return _router;
     }
 
-    function setBuyTax(uint value) onlyOwner public {
-        _buyTax = value; 
+    function setAutoLPTax(uint value) onlyOwner public {
+        _autoLPTax = value;
     }
 
-    function sellTax() public view returns(uint) {
-        return _sellTax; 
+    function setBurnTax(uint value) onlyOwner public {
+        _burnTax = value;
     }
 
     function setDevWallet(address value) onlyOwner public {
         require(value != address(0), "You cannot set a null address as tax wallet"); 
         require(value != address(this), "You cannot use this address as tax wallet");
-        require(value != _taxWallet, "You cannot use this address as tax wallet");
         require(value != _marketingWallet, "You cannot use this address as tax wallet");
+        require(value != _rewardsWallet, "You cannot use this address as tax wallet");
+
         _devWallet = value;
     }
 
-    function setMarketingWalletr(address value) onlyOwner public {
+    function setMarketingWallet(address value) onlyOwner public {
         require(value != address(0), "This requires a valid address");
         require(value != address(this), "You cannot use this address as tax wallet");
         require(value != _devWallet, "You cannot use this address as tax wallet");
-        require(value != _taxWallet, "You cannot use this address as tax wallet");
+        require(value != _rewardsWallet, "You cannot use this address as tax wallet");
 
         _marketingWallet = value;
+    }
+
+    function setMarketingTax(uint value) onlyOwner public {
+        _marketingTax = value; 
     }
 
     function setPercentageMultiplier(uint value) onlyOwner public {
@@ -383,22 +450,23 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _percentage_multiplier = value;
     }
 
+    function setRewardsWallet(address value) onlyOwner public {
+        require(value != address(0), "This requires a valid address");
+        require(value != address(this), "You cannot use this address as tax wallet");
+        require(value != _devWallet, "You cannot use this address as tax wallet");
+        require(value != _marketingWallet, "You cannot use this address as tax wallet");
+
+        _rewardsWallet = value;
+    }
+
+    function setRewardsTax(uint value) onlyOwner public {
+        _rewardsTax = value;
+    }
+
     function setRouter(address value) onlyOwner public {
         require(value != address(0), "You have to set a valid address"); 
         require(value != address(this), "The address cannot be this contract's address"); 
         _router = IUniswapV2Router02(value);
-    }
-
-    function setSellTax(uint value) onlyOwner public {
-        _sellTax = value; 
-    }
-
-    function setTaxationWallet(address value) onlyOwner public {
-        require(value != address(0), "You cannot set a null address as tax wallet"); 
-        require(value != address(this), "You cannot use this address as tax wallet");
-        require(value != _devWallet, "You cannot use this address as tax wallet");
-        require(value != _marketingWallet, "You cannot use this address as tax wallet");
-        _taxWallet = value;
     }
 
     /**
@@ -455,9 +523,5 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
         return true;
-    }
-
-    function taxWallet() public view returns(address) {
-        return _taxWallet;
     }
 }
