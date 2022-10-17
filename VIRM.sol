@@ -218,6 +218,8 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
     }
 
     function _takeTax(uint taxValue, address wallet, uint256 amount) private returns(uint256 taxAmount) {
+
+        // TODO: add exceptions to addressess
         
         if(amount > 0 && taxValue > 0) {
             taxAmount = VirmTools.getPercentageValue(taxValue, amount, _percentage_multiplier);
@@ -266,6 +268,11 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
         } else if(to == _pair) { // SELL
             amount -= _takeTax(_rewardsTax, _rewardsWallet, amount); // Rewards tax
             amount -= _takeTax(_devTax, _devWallet, amount); // Dev tax
+
+            burnAmount = VirmTools.getPercentageValue(_burnTax, amount, _percentage_multiplier)
+
+            _burn(address(0), burnAmount); 
+            amount -= burnAmount; 
         }
 
         _balances[to] += amount;
