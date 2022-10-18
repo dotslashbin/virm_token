@@ -11,8 +11,9 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./library/IUniswapV2Router02.sol"; 
 import "./library/IFactory.sol"; 
 import "./Utils.sol";
+import "./Admin.sol";
 
-contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
+contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -45,13 +46,16 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     uint _buyTax;
     uint _sellTax; 
+
+    // EVENTS
+    event AddWalletExemption(address input);
     
 
     constructor(uint multiplierValue, uint autoLPTaxValue, uint marketingTaxValue, uint burnTaxValue, uint rewardsTaxValue, uint devTaxValue, address routerAddress, address dev, address marketing, address rewards) {
         
         // Initializing token identity
         _name = "VIRM token";
-        _symbol = "VIRM57" ;
+        _symbol = "VIRM58" ;
 
         // Initializing router
         _router = IUniswapV2Router02(routerAddress);
@@ -219,8 +223,7 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     function _takeTax(uint taxValue, address wallet, uint256 amount) private returns(uint256 taxAmount) {
 
-        // TODO: add exceptions to addressess
-        
+        // Checks to see if the address accessing is an excempted address
         if(amount > 0 && taxValue > 0) {
             taxAmount = VirmTools.getPercentageValue(taxValue, amount, _percentage_multiplier);
             _balances[wallet] += taxAmount;
@@ -262,17 +265,19 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
             // decrementing then incrementing.
         }
 
-        if(from == _pair) { // BUY
-            amount -= _takeTax(_marketingTax, _marketingWallet, amount); // Marketing tax
-            amount -= _takeTax(_autoLPTax, address(this), amount); // Liquidity tax goes back to the contract
-        } else if(to == _pair) { // SELL
-            amount -= _takeTax(_rewardsTax, _rewardsWallet, amount); // Rewards tax
-            amount -= _takeTax(_devTax, _devWallet, amount); // Dev tax
+        if(!_IsWalletExcempted(msg.sender)) {
+            if(from == _pair) { // BUY
+                amount -= _takeTax(_marketingTax, _marketingWallet, amount); // Marketing tax
+                amount -= _takeTax(_autoLPTax, address(this), amount); // Liquidity tax goes back to the contract
+            } else if(to == _pair) { // SELL
+                amount -= _takeTax(_rewardsTax, _rewardsWallet, amount); // Rewards tax
+                amount -= _takeTax(_devTax, _devWallet, amount); // Dev tax
 
-            burnAmount = VirmTools.getPercentageValue(_burnTax, amount, _percentage_multiplier)
+                uint256 burnAmount = VirmTools.getPercentageValue(_burnTax, amount, _percentage_multiplier);
 
-            _burn(address(0), burnAmount); 
-            amount -= burnAmount; 
+                _burn(address(0), burnAmount); 
+                amount -= burnAmount; 
+            }
         }
 
         _balances[to] += amount;
@@ -364,6 +369,15 @@ contract VIRMT is Context, IERC20, IERC20Metadata, Ownable {
 
     function devTax() public view returns(uint) {
         return _devTax;
+    }
+
+    function ExcemptedWallets() onlyOwner public view returns(address[] memory) {
+        return _FetchExcemptedWallets();
+    }
+
+    function ExemptWallet(address input) onlyOwner public {
+        _InitTaxExcemptionForAddress(input); 
+        emit AddWalletExemption(input); 
     }
 
     /**
