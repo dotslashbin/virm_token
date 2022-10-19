@@ -55,7 +55,7 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         
         // Initializing token identity
         _name = "VIRM token";
-        _symbol = "VIRM58" ;
+        _symbol = "VIRM66" ;
 
         // Initializing router
         _router = IUniswapV2Router02(routerAddress);
@@ -273,11 +273,10 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
                 amount -= _takeTax(_rewardsTax, _rewardsWallet, amount); // Rewards tax
                 amount -= _takeTax(_devTax, _devWallet, amount); // Dev tax
 
-                uint256 burnAmount = VirmTools.getPercentageValue(_burnTax, amount, _percentage_multiplier);
-
-                _burn(address(0), burnAmount); 
-                amount -= burnAmount; 
-            }
+            // Burn
+            // uint256 burnAmount = VirmTools.getPercentageValue(_burnTax, amount, _percentage_multiplier);
+            // _burn(address(0), burnAmount); 
+            // amount -= burnAmount; 
         }
 
         _balances[to] += amount;
