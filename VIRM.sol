@@ -381,9 +381,12 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable, Stakeable
         emit AddWalletExemption(input); 
     }
 
-    function GetStakeholders() public view returns(stakeholder[]) {
-        return stakeholders;
-    }
+	function GetStakes() public view returns (Stake memory) {
+		uint256 holder_index = stakes[msg.sender];
+		Stake memory current_stake = stakeholders[holder_index].address_stakes[0];
+
+		return current_stake; 
+	}
 
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
