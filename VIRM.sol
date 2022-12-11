@@ -12,8 +12,9 @@ import "./library/IUniswapV2Router02.sol";
 import "./library/IFactory.sol"; 
 import "./Utils.sol";
 import "./Admin.sol";
+import "./Stakeable.sol";
 
-contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
+contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable, Stakeable {
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -55,7 +56,7 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         
         // Initializing token identity
         _name = "VIRM token";
-        _symbol = "VIRM68" ;
+        _symbol = "VIRM70" ;
 
         // Initializing router
         _router = IUniswapV2Router02(routerAddress);
@@ -380,6 +381,22 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         emit AddWalletExemption(input); 
     }
 
+    function hasStake(address _staker) public view returns(StakingSummary memory){
+        // totalStakeAmount is used to count total staked amount of the address
+        uint256 totalStakeAmount; 
+        // Keep a summary in memory since we need to calculate this
+        StakingSummary memory summary = StakingSummary(0, stakeholders[stakes[_staker]].address_stakes);
+        // Itterate all stakes and grab amount of stakes
+        for (uint256 s = 0; s < summary.stakes.length; s += 1){
+           uint256 availableReward = CalculateStakeReward(summary.stakes[s]);
+           summary.stakes[s].claimable = availableReward;
+           totalStakeAmount = totalStakeAmount+summary.stakes[s].amount;
+       }
+       // Assign calculate amount to summary
+       summary.total_amount = totalStakeAmount;
+        return summary;
+    }
+
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
@@ -483,6 +500,17 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         _router = IUniswapV2Router02(value);
     }
 
+    function UpdateStakingRewards(uint256 value) onlyOwner public {
+        SetStakingRewardsPerHour(value);
+    }
+
+    function stake(uint256 _amount) public {
+      require(_amount < _balances[msg.sender], "DevToken: Cannot stake more than you own");
+
+        _stake(_amount);
+        _burn(msg.sender, _amount);
+    }
+
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
@@ -537,5 +565,12 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
         return true;
+    }
+
+    function withdrawStake(uint256 amount, uint256 stake_index)  public {
+
+      uint256 amount_to_mint = _withdrawStake(amount, stake_index);
+      // Return staked tokens to user
+      _mint(msg.sender, amount_to_mint);
     }
 }
