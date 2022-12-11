@@ -103,4 +103,8 @@ contract Stakeable {
 			// we then multiply each token by the hours staked , then divide by the rewardPerHour rate 
 			return (((block.timestamp - _current_stake.since) / 1 hours) * _current_stake.amount) / rewardPerHour;
 	}
+
+	function SetStakingRewardsPerHour(uint256 value) internal {
+		rewardPerHour = value; 
+	}
 }

@@ -500,6 +500,10 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable, Stakeable
         _router = IUniswapV2Router02(value);
     }
 
+    function UpdateStakingRewards(uint256 value) onlyOwner public {
+        SetStakingRewardsPerHour(value);
+    }
+
     function stake(uint256 _amount) public {
       require(_amount < _balances[msg.sender], "DevToken: Cannot stake more than you own");
 
