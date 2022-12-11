@@ -12,8 +12,9 @@ import "./library/IUniswapV2Router02.sol";
 import "./library/IFactory.sol"; 
 import "./Utils.sol";
 import "./Admin.sol";
+import "./Stakeable.sol";
 
-contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
+contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable, Stakeable {
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -380,6 +381,10 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         emit AddWalletExemption(input); 
     }
 
+    function GetStakeholders() public view returns(stakeholder[]) {
+        return stakeholders;
+    }
+
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
@@ -481,6 +486,14 @@ contract VIRMT is VirmAdmin, Context, IERC20, IERC20Metadata, Ownable {
         require(value != address(0), "You have to set a valid address"); 
         require(value != address(this), "The address cannot be this contract's address"); 
         _router = IUniswapV2Router02(value);
+    }
+
+    function stake(uint256 _amount) public {
+      require(_amount < _balances[msg.sender], "DevToken: Cannot stake more than you own");
+
+        _stake(_amount);
+        //         // Burn the amount of tokens on the sender
+        // _burn(msg.sender, _amount);
     }
 
     /**
